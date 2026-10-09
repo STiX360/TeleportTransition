@@ -1,0 +1,75 @@
+uniform_float transitionProgress {
+    static = false;
+    default = 0.0;
+}
+uniform_float transitionStrength {
+    static = false;
+    default = 2.4;
+}
+uniform_float transitionAspect {
+    static = false;
+    default = 1.777778;
+}
+uniform_float transitionDistortion { static = false; default = 3.0; }
+uniform_float transitionRipples { static = false; default = 3.0; }
+uniform_float transitionTint { static = false; default = 0.85; }
+uniform_float transitionFringe { static = false; default = 0.6; }
+uniform_float transitionRed { static = false; default = 0.68; }
+uniform_float transitionGreen { static = false; default = 0.24; }
+uniform_float transitionBlue { static = false; default = 1.0; }
+uniform_bool transitionReducedMotion {
+    static = false;
+    default = false;
+}
+
+fragment teleportTransition {
+    omw_In vec2 omw_TexCoord;
+    void main() {
+        vec2 uv = omw_TexCoord;
+        float t = clamp(transitionProgress, 0.0, 1.0);
+        float envelope = sin(t * 3.14159265);
+        vec2 centre = uv - vec2(0.5);
+        vec2 aspect = vec2(transitionAspect, 1.0);
+        float radius = length(centre * aspect);
+        float strength = transitionStrength * envelope;
+        float ring = exp(-pow((radius - t * 1.1) * 12.0, 2.0));
+        float wave = sin(radius * 24.0 * transitionRipples - t * 18.0 * transitionRipples);
+        float colourMask = max(ring * (0.5 + 0.5 * wave), 0.25);
+        if (!transitionReducedMotion) {
+            float contraction = -0.12 * exp(-t * 4.0);
+            float bandWidth = 12.0 / sqrt(transitionRipples);
+            float waveRegion = exp(-pow((radius - t * 1.1) * bandWidth, 2.0));
+            float ripple = wave * waveRegion * 0.025;
+            uv += centre * clamp((contraction + ripple) * strength * transitionDistortion, -0.22, 0.22);
+            colourMask = max(waveRegion * (0.5 + 0.5 * wave), 0.25);
+        } else {
+            colourMask = 0.4;
+        }
+        uv = clamp(uv, vec2(0.001), vec2(0.999));
+        vec4 scene = omw_GetLastShader(uv);
+        if (!transitionReducedMotion && transitionFringe > 0.0) {
+            vec2 split = centre * transitionFringe * min(strength, 1.5) * ring * 0.012;
+            scene.r = omw_GetLastShader(clamp(uv + split, vec2(0.001), vec2(0.999))).r;
+            scene.b = omw_GetLastShader(clamp(uv - split, vec2(0.001), vec2(0.999))).b;
+        }
+        // A peripheral fade also provides a non-moving accessibility option.
+        float edge = smoothstep(0.18, 0.85, radius);
+        scene.rgb *= 1.0 - edge * min(strength, 1.5) * 0.35;
+        // Preserve texture detail while colouring the transient wavefront, not the whole scene permanently.
+        vec3 magicColour = vec3(transitionRed, transitionGreen, transitionBlue);
+        float tint = clamp(transitionTint * strength * colourMask, 0.0, 0.85);
+        float luminance = dot(scene.rgb, vec3(0.2126, 0.7152, 0.0722));
+        vec3 coloured = scene.rgb * mix(vec3(1.0), magicColour, 0.65);
+        coloured += magicColour * (0.12 + luminance * 0.3);
+        scene.rgb = mix(scene.rgb, coloured, tint);
+        omw_FragColor = scene;
+    }
+}
+
+technique {
+    description = "Short teleport arrival transition. Controlled through Scripts.";
+    author = "Teleport Transition";
+    version = "0.2.1";
+    passes = teleportTransition;
+    dynamic = true;
+}

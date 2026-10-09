@@ -1,0 +1,3 @@
+PLAYER: scripts/teleport_transition/player.lua
+GLOBAL: scripts/teleport_transition/test_fixtures.lua
+PLAYER: scripts/teleport_transition/test_player.lua
