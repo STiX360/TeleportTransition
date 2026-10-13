@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.4
+
+- Finish optional Kyne's Intervention support with real-casting regression tests.
+- Detect Kyne's cast release at capped Mysticism, still requiring an actual
+  arrival before playing the transition.
+- Show a Kyne colour override only when its spell record is installed; inherit
+  Default Colour otherwise, without adding a Tamriel Data or Skyrim dependency.
+- Stage the isolated Kyne test on dry land and cover disabled effects, automatic
+  detection off, blocked travel, insufficient magicka, failed casts, and regional limits.
+- Confirm Kyne's Intervention in-game after the native casting suite passes.
+
 ## 0.2.3
 
 - Recognise Daisy's Greater Recall custom effect directly, including translated

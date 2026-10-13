@@ -118,6 +118,7 @@ foreach ($archive in @('Tribunal.bsa', 'Bloodmoon.bsa')) {
 }
 if ($SmokeTest) {
     $lines += if ($DaisyMultiMarkArchive) { 'content=TeleportTransitionDaisySmoke.omwscripts' }
+        elseif ($KyneData) { 'content=TeleportTransitionKyneSmoke.omwscripts' }
         else { 'content=TeleportTransitionSmoke.omwscripts' }
 }
 [IO.File]::WriteAllLines((Join-Path $profilePath 'openmw.cfg'), $lines)
@@ -162,7 +163,7 @@ if ($SmokeTest) {
     }
     $log = Get-Content -LiteralPath (Join-Path $profilePath 'openmw.log') -Raw
     if ($process.ExitCode -ne 0 -or $log -notmatch 'TT_SMOKE_PASS' -or $log -match 'TT_SMOKE_FAIL| E\]') {
-        throw "Smoke test failed. See $profilePath\openmw.log"
+        throw "Smoke test failed (exit $($process.ExitCode)). See $profilePath\openmw.log"
     }
     Write-Host 'TT_SMOKE_PASS: supplies, settings, shader preview, and cleanup checked.'
 } else {

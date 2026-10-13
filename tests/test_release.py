@@ -71,6 +71,7 @@ class ReleaseTests(unittest.TestCase):
                      'Test-Teleport-Transition-Daisy.cmd', 'Test-Teleport-Transition-Kyne.cmd',
                      'TeleportTransitionDaisyTest.omwscripts', 'TeleportTransitionDaisySmoke.omwscripts',
                      'TeleportTransitionKyneTest.omwscripts',
+                     'TeleportTransitionKyneSmoke.omwscripts',
                      'TeleportTransitionTest.omwscripts', 'TeleportTransitionSmoke.omwscripts',
                      'TESTING.md', 'requirements-dev.txt'):
             (self.root / name).write_text('fixture')

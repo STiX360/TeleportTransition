@@ -33,6 +33,7 @@ def build(root=ROOT, test=False):
                       'Test-Teleport-Transition-Daisy.cmd', 'Test-Teleport-Transition-Kyne.cmd',
                       'TeleportTransitionDaisyTest.omwscripts', 'TeleportTransitionDaisySmoke.omwscripts',
                       'TeleportTransitionKyneTest.omwscripts',
+                      'TeleportTransitionKyneSmoke.omwscripts',
                       'TeleportTransitionTest.omwscripts', 'TeleportTransitionSmoke.omwscripts',
                       'TESTING.md', 'VERSION', 'requirements-dev.txt'))
         for directory in ('scripts', 'L10n', 'tests', 'tools', 'reports'):

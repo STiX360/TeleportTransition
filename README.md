@@ -1,4 +1,4 @@
-# Teleport Transition 0.2.3
+# Teleport Transition 0.2.4
 
 An asset-free procedural arrival effect for Recall, Almsivi Intervention, and
 Divine Intervention. A short contraction and expanding ripple settle back to
@@ -83,7 +83,7 @@ as well as refraction and chromatic splitting. There is no strobing or white fla
 
 ## Behaviour and limitations
 
-The controller pairs a successful Mysticism cast with an actual teleport event
+The controller pairs a detected teleport spell cast with an actual teleport event
 within 0.25 simulation seconds. If a teleport spell opens a menu, as multimark
 mods often do, that matching window is held while the menu is open. Doors, paid
 travel, Mark, failed casts, and blocked/no-destination casts should not trigger it.
@@ -95,10 +95,13 @@ Both mods are optional; no additional mod is required. Scrolls and enchanted
 items remain outside automatic detection. Vanilla spell records and travel mechanics
 are not modified.
 
-Optional Kyne's Intervention detection is experimental. Its custom effect and
-Divine Intervention fallback are recognised, but normal-casting acceptance is
-pending. It uses Default Colour; its dedicated colour control remains hidden.
+Kyne's Intervention from Tamriel Data is supported, including its custom effect
+and Divine Intervention fallback. Its colour override appears only when the
+spell record is installed and otherwise inherits Default Colour. Native tests
+cover real casting, arrival, disabled effects, and rejected travel.
 Tamriel Data and Skyrim are not dependencies of Teleport Transition.
+Kyne's cast-release animation also supplies detection when capped Mysticism
+prevents a skill-progression notification. A real arrival is still required.
 
 This is an arrival transition, not a before-and-after crossfade: the engine
 teleports instantly, and we do not intercept it or retain the departure image.

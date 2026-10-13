@@ -12,11 +12,13 @@ local group = 'SettingsPlayerTeleportTransition'
 local defaults = {enabled = true, automatic = true, strength = 2.4, duration = 1.8, reducedMotion = false,
     distortion = 3, ripples = 3, colour = 'Purple', recallColour = 'Default', almsiviColour = 'Default',
     divineColour = 'Default', tint = 0.85, fringe = 0.6}
+local kyneInstalled = core.magic.spells and core.magic.spells.records['t_nor_mys_kynesintervention'] ~= nil
+if kyneInstalled then defaults.kyneColour = 'Default' end
 local colours = {Neutral = {1, 1, 1}, Purple = {0.68, 0.24, 1},
     Blue = {0.2, 0.65, 1}, Green = {0.25, 1, 0.55}, Gold = {1, 0.7, 0.2}}
 local colourItems = {'Default', 'Neutral', 'Purple', 'Blue', 'Green', 'Gold'}
 I.Settings.registerPage {key = 'TeleportTransition', l10n = 'TeleportTransition', name = 'PageName'}
-I.Settings.registerGroup {
+local settingsGroup = {
     key = group, page = 'TeleportTransition', l10n = 'TeleportTransition', name = 'Treatment',
     permanentStorage = false,
     settings = {
@@ -39,6 +41,13 @@ I.Settings.registerGroup {
         {key = 'reducedMotion', renderer = 'checkbox', name = 'ReducedMotion', default = false},
     },
 }
+if kyneInstalled then
+    table.insert(settingsGroup.settings, 11, {
+        key = 'kyneColour', renderer = 'select', name = 'KyneColour', default = defaults.kyneColour,
+        argument = {l10n = 'TeleportTransition', items = colourItems},
+    })
+end
+I.Settings.registerGroup(settingsGroup)
 local settings = storage.playerSection(group)
 local shader, failed, elapsed, duration, castTime, teleportTime, castCategory, teleportCategory, activeCategory, pendingPlay
 local restored, pending, held = nil, true, false
@@ -68,7 +77,7 @@ end
 
 local function colourSetting(category)
     local key = ({recall = 'recallColour', almsivi = 'almsiviColour',
-        divine = 'divineColour'})[category]
+        divine = 'divineColour', kyne = kyneInstalled and 'kyneColour' or nil})[category]
     local value = key and settings:get(key) or 'Default'
     if value == 'Default' or not colours[value] then value = settings:get('colour') end
     return colours[value] or colours.Neutral
@@ -174,6 +183,18 @@ I.SkillProgression.addSkillUsedHandler(function(skill, options)
     matchTeleport()
 end)
 
+I.AnimationController.addTextKeyHandler('spellcast', function(_, key)
+    if key ~= 'self release' then return end
+    initialise()
+    if settings:get('enabled') == false or settings:get('automatic') == false
+        or not types.Player.isTeleportingEnabled(self)
+        or selectedTeleportCategory() ~= 'kyne' then return end
+    -- Skill progression may stop at the cap; require a real arrival as well.
+    castTime = core.getSimulationTime()
+    castCategory = 'kyne'
+    matchTeleport()
+end)
+
 return {
     interfaceName = 'TeleportTransition',
     interface = {version = 1, play = play, stop = stop},
@@ -221,7 +242,7 @@ return {
         end,
         onSave = function()
             initialise()
-            return {enabled = settings:get('enabled') ~= false,
+            local saved = {enabled = settings:get('enabled') ~= false,
                 automatic = settings:get('automatic') ~= false,
                 strength = number('strength', 0, 3), duration = number('duration', 0.2, 2),
                 distortion = number('distortion', 0, 4), ripples = number('ripples', 1, 5),
@@ -231,6 +252,10 @@ return {
                 divineColour = colours[settings:get('divineColour')] and settings:get('divineColour') or 'Default',
                 tint = number('tint', 0, 1), fringe = number('fringe', 0, 1),
                 reducedMotion = settings:get('reducedMotion') == true}
+            if kyneInstalled then
+                saved.kyneColour = colours[settings:get('kyneColour')] and settings:get('kyneColour') or 'Default'
+            end
+            return saved
         end,
         onKeyPress = function(key)
             if key.code ~= input.KEY.F11 or held then return end

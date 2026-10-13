@@ -69,7 +69,7 @@ speed independently; Purple with a nonzero Colour intensity adds magical colour.
 All new settings also appear on the production Scripts page. `baseline` restores
 the original look without changing Enabled.
 
-Version 0.2.3 defaults match the slow purple effect: strength 2.4,
+Version 0.2.4 defaults match the slow purple effect: strength 2.4,
 duration 1.8, distortion 3, bands 3, Purple, colour intensity 0.85, fringe 0.6.
 Start fresh or use Reset to adopt them. Both Enabled and Automatic spell effects
 default to Yes. Test integration-only mode by turning Automatic spell effects to
@@ -158,15 +158,18 @@ The subsequent manual Greater Mark/Greater Recall test was confirmed working.
 
 Double-click `Test-Teleport-Transition-Kyne.cmd`. It copies the engine, Tamriel
 Data, and Skyrim: Home of the Nords from POTI to `.runtime/kyne-source`, then
-launches an independent profile in Karthgad. Copies are reused on later runs.
+launches an independent profile, then stages the character on dry land near
+the configured Karth River destination. Copies are reused on later runs.
 POTI settings, saves, and installed files are not changed. The test supplies
 Kyne's Intervention and the vanilla spell kit with high casting stats.
 
 1. Select Kyne's Intervention in the magic window and cast it. Expect arrival
    at a configured Kyne destination and one transition using Default Colour.
 2. Walk away from the arrival spot and repeat. Expect one transition.
-3. Set Divine Intervention colour to Gold and Default Colour to Blue. Kyne
-   should remain blue, not gold. Its dedicated colour control is still hidden.
+3. Set Divine Intervention colour to Gold and Kyne's Intervention colour to Blue.
+   Kyne should be blue, not gold. Set Kyne's colour back to Default Colour and
+   verify it follows the shared colour. The Kyne control appears only when its
+   spell record is installed.
 4. Set Enabled to No and cast Kyne. Expect travel without a transition.
 5. Re-enable, cast Mark, then Divine Intervention and Recall. Both vanilla
    arrivals should still produce their appropriate transitions.
@@ -174,6 +177,10 @@ Kyne's Intervention and the vanilla spell kit with high casting stats.
 Logs are in `.runtime/kyne-manual-profile/openmw.log`. This is optional
 compatibility work after the committed Multi Mark update; Tamriel Data and
 Skyrim are needed only for this dedicated test, not for the production mod.
+Run `tools/start-kyne-test.ps1 -SmokeTest` for the eight-case native casting suite.
+It uses player casting controls, not injected active spells or synthetic success
+notifications. It checks one pulse for successful arrivals, no pulse when effects
+are disabled, no travel or pulse for rejected casts, and shader cleanup.
 
 ### Pure Lua Multi Mark
 

@@ -11,10 +11,12 @@ from lupa.lua51 import LuaRuntime
 class TeleportTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime()
+        self.lua.globals().kyneInstalled = getattr(self, 'kyne_installed', False)
         self.lua.execute("""
             now, loads, playing, mode = 0, 0, true, nil
             enabledTeleport, stance, effect = true, 'spell', 'recall'
             values, chain = {}, {{name='POTI'}}
+            registeredKeys={}
             spellId, spellName = nil, nil
             shader = {uniforms={}}
             function shader:enable()
@@ -27,20 +29,22 @@ class TeleportTests(unittest.TestCase):
             function shader:setFloat(k,v) self.uniforms[k]=v end
             shader.setBool=shader.setFloat
             section={get=function(_,k) return values[k] end,
-                set=function(_,k,v) values[k]=v end}
+                set=function(_,k,v) assert(registeredKeys[k], 'Unregistered setting: '..k); values[k]=v end}
             package.preload['openmw.storage']=function()
                 return {playerSection=function() return section end}
             end
             package.preload['openmw.interfaces']=function()
                 return {Settings={registerPage=function() end,registerGroup=function(g)
-                    for _,s in ipairs(g.settings) do values[s.key]=s.default end
-                end},UI={getMode=function() return mode end},SkillProgression={
+                    for _,s in ipairs(g.settings) do registeredKeys[s.key]=true; values[s.key]=s.default end
+                end},UI={getMode=function() return mode end},
+                AnimationController={addTextKeyHandler=function(_,fn) releaseHandler=fn end},SkillProgression={
                     SKILL_USE_TYPES={Spellcast_Success=0},
                     addSkillUsedHandler=function(fn) skillHandler=fn end}}
             end
             package.preload['openmw.core']=function()
                 return {getSimulationTime=function() return now end,
-                    magic={SPELL_TYPE={Spell='spell'},EFFECT_TYPE={Recall='recall',
+                    magic={spells={records=kyneInstalled and {t_nor_mys_kynesintervention={}} or {}},
+                        SPELL_TYPE={Spell='spell'},EFFECT_TYPE={Recall='recall',
                         AlmsiviIntervention='almsiviintervention',DivineIntervention='divineintervention'}}}
             end
             package.preload['openmw.types']=function()
@@ -200,6 +204,7 @@ class TeleportTests(unittest.TestCase):
     def test_optional_kyne_custom_effect_and_fallback(self):
         self.run_lua("""
             h.onFrame(0); values.colour='Blue'; values.divineColour='Gold'
+            assert(not registeredKeys.kyneColour and h.onSave().kyneColour==nil)
             spellId='T_Nor_Mys_KynesIntervention'; spellName='Divine Intervention'
             effect='divineintervention'; cast(); h.onTeleported(); h.onFrame(0)
             assert(shader.uniforms.transitionRed==0.2 and shader.uniforms.transitionBlue==1)
@@ -232,6 +237,47 @@ class TeleportTests(unittest.TestCase):
             h.onLoad(saved); h.onFrame(0); assert(not values.automatic)
             assert(api.play()); values.enabled=false; h.onFrame(0); assert(not shader.active)
             assert(not api.play())
+        """)
+
+
+class OptionalKyneTests(unittest.TestCase):
+    def setUp(self):
+        self.controller = TeleportTests()
+        self.controller.kyne_installed = True
+        self.controller.setUp()
+        self.run_lua = self.controller.run_lua
+
+    def test_conditional_setting_colour_and_persistence(self):
+        self.run_lua("""
+            h.onFrame(0); assert(registeredKeys.kyneColour and values.kyneColour=='Default')
+            values.colour='Purple'; values.divineColour='Gold'; values.kyneColour='Blue'
+            spellId='t_nor_mys_kynesintervention'; spellName='Divine Intervention'
+            effect='divineintervention'; cast(); h.onTeleported(); h.onFrame(0)
+            assert(shader.uniforms.transitionRed==0.2 and shader.uniforms.transitionBlue==1)
+            saved=h.onSave(); assert(saved.kyneColour=='Blue')
+            h.onLoad(saved); h.onFrame(0); assert(values.kyneColour=='Blue')
+            effect='t_intervention_kyne'; spellId='translated'; spellName='Translated name'
+            cast(); h.onTeleported(); h.onFrame(0); assert(shader.uniforms.transitionRed==0.2)
+            values.kyneColour='Default'; h.onFrame(0); assert(shader.uniforms.transitionRed==0.68)
+        """)
+
+    def test_old_save_and_invalid_colour_use_default(self):
+        self.run_lua("""
+            h.onLoad({colour='Green'}); h.onFrame(0); assert(values.kyneColour=='Default')
+            values.kyneColour='invalid'; effect='t_intervention_kyne'
+            cast(); h.onTeleported(); h.onFrame(0)
+            assert(shader.uniforms.transitionGreen==1 and shader.uniforms.transitionRed==0.25)
+            assert(h.onSave().kyneColour=='Default')
+        """)
+
+    def test_capped_skill_release_still_requires_arrival(self):
+        self.run_lua("""
+            h.onFrame(0); values.kyneColour='Blue'; effect='t_intervention_kyne'
+            releaseHandler('spellcast','self release'); assert(not shader.active)
+            h.onTeleported(); h.onFrame(0); assert(shader.active and shader.uniforms.transitionRed==0.2)
+            h.onFrame(2); releaseHandler('spellcast','self release')
+            now=1; h.onFrame(0); assert(not shader.active)
+            playing=false; h.onTeleported(); h.onFrame(0); assert(not shader.active)
         """)
 
 
