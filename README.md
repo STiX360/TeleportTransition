@@ -1,4 +1,4 @@
-# Teleport Transition 0.2.2
+# Teleport Transition 0.2.3
 
 An asset-free procedural arrival effect for Recall, Almsivi Intervention, and
 Divine Intervention. A short contraction and expanding ripple settle back to
@@ -40,7 +40,7 @@ Manual installation: add this directory as a data path in openmw.cfg and add
 `content=TeleportTransition.omwscripts`.
 
 Options > Scripts > Teleport Transition provides Enabled (default on), strength,
-duration, distortion, ripple bands, magic colour, per-spell colour overrides,
+duration, distortion, ripple bands, Default Colour, per-spell colour overrides,
 colour intensity, chromatic fringe, and Reduced motion. Ctrl+Shift+F11 previews
 the effect during gameplay.
 Reduced motion removes displacement and chromatic splitting; colour and a gentle
@@ -48,7 +48,8 @@ peripheral fade remain. Numeric ranges are shown beneath each setting.
 The dynamic shader is locked in the F2 HUD; use Scripts settings instead.
 
 Enabled is the master switch for this controller, previews, and its integration
-interface. Automatic spell effects controls only vanilla spell detection. To use
+interface. Automatic spell effects controls detection of vanilla and supported
+custom teleport spells. To use
 only another mod's triggers, leave Enabled on and turn Automatic spell effects off.
 The content manifest must stay enabled to provide the Lua interface and event.
 
@@ -87,10 +88,17 @@ within 0.25 simulation seconds. If a teleport spell opens a menu, as multimark
 mods often do, that matching window is held while the menu is open. Doors, paid
 travel, Mark, failed casts, and blocked/no-destination casts should not trigger it.
 Custom spells using the same three effects are supported, as are spell records
-named like Greater Recall. Pure Lua Multi Mark 2.5 destination selection has been
-tested in-game. Multi Mark is optional; no additional mod is required. Scrolls and enchanted items are
-deliberately outside this first release. Vanilla spell records and travel mechanics
+named like Greater Recall. Pure Lua Multi Mark 2.5 and Daisy's Lua Multimark 2
+destination selection have been tested in-game. Daisy's Greater Recall is also
+recognised by its custom effect ID, including when its name is translated.
+Both mods are optional; no additional mod is required. Scrolls and enchanted
+items remain outside automatic detection. Vanilla spell records and travel mechanics
 are not modified.
+
+Optional Kyne's Intervention detection is experimental. Its custom effect and
+Divine Intervention fallback are recognised, but normal-casting acceptance is
+pending. It uses Default Colour; its dedicated colour control remains hidden.
+Tamriel Data and Skyrim are not dependencies of Teleport Transition.
 
 This is an arrival transition, not a before-and-after crossfade: the engine
 teleports instantly, and we do not intercept it or retain the departure image.

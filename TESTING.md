@@ -69,7 +69,7 @@ speed independently; Purple with a nonzero Colour intensity adds magical colour.
 All new settings also appear on the production Scripts page. `baseline` restores
 the original look without changing Enabled.
 
-Version 0.2.2 defaults match the slow purple effect: strength 2.4,
+Version 0.2.3 defaults match the slow purple effect: strength 2.4,
 duration 1.8, distortion 3, bands 3, Purple, colour intensity 0.85, fringe 0.6.
 Start fresh or use Reset to adopt them. Both Enabled and Automatic spell effects
 default to Yes. Test integration-only mode by turning Automatic spell effects to
@@ -125,6 +125,55 @@ preview. Test your regular resolution and reduced motion. This is an arrival eff
 it does not retain or crossfade the departure scene.
 
 ## Verification Limits
+
+### Daisy's Lua Multimark
+
+Double-click `Test-Teleport-Transition-Daisy.cmd` for an independent session
+using the downloaded version 2 archive and the copied test engine. Greater Mark
+and Greater Recall are supplied along with the vanilla spell kit. This profile
+does not enable Pure Lua Multi Mark or the Kyne test dependencies.
+
+1. Cast Greater Mark at your starting point. Walk elsewhere and cast it again.
+   Neither cast should produce a transition.
+2. Cast Greater Recall, wait ten seconds in the menu, and choose the first mark.
+   Expect the correct arrival and exactly one transition.
+3. Repeat for the second mark. Expect the same result.
+4. Cast Greater Recall and cancel. Expect no travel or transition.
+5. Change Recall colour, then use Greater Recall. Expect the chosen colour.
+6. Cast Divine Intervention and ordinary Recall to check vanilla behaviour.
+
+Logs: `.runtime/daisymultimark-manual-profile/openmw.log`. Test saves and Lua
+storage are in the corresponding isolated user-data directory. The supplied
+archive stays external; no Daisy scripts or assets are packaged with this mod.
+
+Archive-backed tests accept `DAISY_MULTIMARK_ARCHIVE` and exercise Daisy's real
+Greater Mark/Recall events, menu selection, destination handler, cancellation,
+and translated-name detection. The native Daisy smoke run checks its actual
+mark storage, rendered menu, global teleport, and exactly one arrival pulse.
+It supplies a synthetic cast-success notification and does not replace normal
+casting or visual acceptance.
+The subsequent manual Greater Mark/Greater Recall test was confirmed working.
+
+### Kyne's Intervention Follow-Up
+
+Double-click `Test-Teleport-Transition-Kyne.cmd`. It copies the engine, Tamriel
+Data, and Skyrim: Home of the Nords from POTI to `.runtime/kyne-source`, then
+launches an independent profile in Karthgad. Copies are reused on later runs.
+POTI settings, saves, and installed files are not changed. The test supplies
+Kyne's Intervention and the vanilla spell kit with high casting stats.
+
+1. Select Kyne's Intervention in the magic window and cast it. Expect arrival
+   at a configured Kyne destination and one transition using Default Colour.
+2. Walk away from the arrival spot and repeat. Expect one transition.
+3. Set Divine Intervention colour to Gold and Default Colour to Blue. Kyne
+   should remain blue, not gold. Its dedicated colour control is still hidden.
+4. Set Enabled to No and cast Kyne. Expect travel without a transition.
+5. Re-enable, cast Mark, then Divine Intervention and Recall. Both vanilla
+   arrivals should still produce their appropriate transitions.
+
+Logs are in `.runtime/kyne-manual-profile/openmw.log`. This is optional
+compatibility work after the committed Multi Mark update; Tamriel Data and
+Skyrim are needed only for this dedicated test, not for the production mod.
 
 ### Pure Lua Multi Mark
 

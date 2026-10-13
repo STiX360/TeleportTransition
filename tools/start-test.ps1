@@ -5,9 +5,14 @@ param(
     [switch]$SmokeTest,
     [switch]$PotiShaders,
     [string]$PureMultiMarkArchive,
+    [string]$DaisyMultiMarkArchive,
+    [string]$KyneData,
     [string]$PotiProfile = 'C:\Modlists\POTI\profiles\Path of the Incarnate - Standard'
 )
 $ErrorActionPreference = 'Stop'
+if ($PureMultiMarkArchive -and $DaisyMultiMarkArchive) {
+    throw 'Test the two Multi Mark implementations in separate sessions.'
+}
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $enginePath = (Resolve-Path -LiteralPath $Engine).Path
 $gamePath = (Resolve-Path -LiteralPath $GameData).Path
@@ -29,6 +34,8 @@ foreach ($file in @('TeleportTransitionTest.omwscripts', 'TeleportTransitionSmok
 $name = if ($SmokeTest) { 'smoke' } else { 'manual' }
 if ($PotiShaders) { $name = 'poti-shaders-' + $name }
 if ($PureMultiMarkArchive) { $name = 'puremultimark-' + $name }
+if ($DaisyMultiMarkArchive) { $name = 'daisymultimark-' + $name }
+if ($KyneData) { $name = 'kyne-' + $name }
 $profilePath = Join-Path $projectRoot ".runtime\$name-profile"
 $userDataPath = Join-Path $projectRoot ".runtime\$name-user-data"
 $localDataPath = Join-Path $userDataPath 'data'
@@ -44,6 +51,27 @@ $lines = @(
     'content=TeleportTransitionTest.omwscripts'
 )
 $chain = ''
+if ($DaisyMultiMarkArchive) {
+    $daisyZip = (Resolve-Path -LiteralPath $DaisyMultiMarkArchive).Path
+    $daisyData = Join-Path $projectRoot '.runtime\daisymultimark-source'
+    Expand-Archive -LiteralPath $daisyZip -DestinationPath $daisyData -Force
+    if (-not (Test-Path -LiteralPath (Join-Path $daisyData 'LuaMultiMark.omwscripts'))) {
+        throw 'The archive must contain LuaMultiMark.omwscripts at its root'
+    }
+    $lines += 'data="' + $daisyData.Replace('\','/') + '"'
+    $lines += @('content=LuaMultiMark.omwscripts', 'content=TeleportTransitionDaisyTest.omwscripts')
+}
+if ($KyneData) {
+    $kyneRoot = (Resolve-Path -LiteralPath $KyneData).Path
+    foreach ($entry in @('tamriel-data\Tamriel_Data.esm', 'tamriel-data\Tamriel_Data.omwscripts',
+        'skyrim\Sky_Main.ESM')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $kyneRoot $entry))) { throw "Missing copied Kyne dependency: $entry" }
+    }
+    $lines += 'data="' + (Join-Path $kyneRoot 'tamriel-data').Replace('\','/') + '"'
+    $lines += 'data="' + (Join-Path $kyneRoot 'skyrim').Replace('\','/') + '"'
+    $lines += @('content=Tribunal.esm', 'content=Bloodmoon.esm', 'content=Tamriel_Data.esm',
+        'content=Sky_Main.ESM', 'content=Tamriel_Data.omwscripts', 'content=TeleportTransitionKyneTest.omwscripts')
+}
 if ($PureMultiMarkArchive) {
     $multiMarkZip = (Resolve-Path -LiteralPath $PureMultiMarkArchive).Path
     $multiMarkExtract = Join-Path $projectRoot '.runtime\puremultimark-source'
@@ -88,7 +116,10 @@ foreach ($archive in @('Tribunal.bsa', 'Bloodmoon.bsa')) {
         $lines += 'fallback-archive=' + $archive
     }
 }
-if ($SmokeTest) { $lines += 'content=TeleportTransitionSmoke.omwscripts' }
+if ($SmokeTest) {
+    $lines += if ($DaisyMultiMarkArchive) { 'content=TeleportTransitionDaisySmoke.omwscripts' }
+        else { 'content=TeleportTransitionSmoke.omwscripts' }
+}
 [IO.File]::WriteAllLines((Join-Path $profilePath 'openmw.cfg'), $lines)
 $settingsPath = Join-Path $profilePath 'settings.cfg'
 if ($SmokeTest -or -not (Test-Path -LiteralPath $settingsPath)) {
@@ -113,7 +144,7 @@ chain = $chain
 Write-Host "OpenMW $version test profile: $profilePath"
 Write-Host "Logs: $profilePath\openmw.log"
 Write-Host "Test saves and Lua storage: $userDataPath"
-$startCell = 'Seyda Neen'
+$startCell = if ($KyneData) { 'Karthgad' } else { 'Seyda Neen' }
 Write-Host "Fresh session starts in $startCell. Read TESTING.md for commands and checks."
 if ($PotiShaders) { Write-Host "POTI shader-chain mode (not full modlist): $chain" }
 if ($PureMultiMarkArchive) { Write-Host "Pure Lua Multi Mark enabled from: $multiMarkZip" }

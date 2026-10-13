@@ -125,7 +125,11 @@ local function classifySpell(spell)
     if not spell or spell.type ~= core.magic.SPELL_TYPE.Spell then return nil end
     if types.Actor.getStance(self) ~= types.Actor.STANCE.Spell then return false end
     local text = spellText(spell)
+    -- Tamriel Data's record has a Divine fallback before its custom effect loads.
+    if text:find('kyne', 1, true) and text:find('intervention', 1, true) then return 'kyne' end
     for _, effect in ipairs(spell.effects or {}) do
+        if string.lower(tostring(effect.id)) == 'multimark_recall' then return 'recall' end
+        if string.lower(tostring(effect.id)) == 't_intervention_kyne' then return 'kyne' end
         if effect.id == core.magic.EFFECT_TYPE.Recall then return 'recall' end
         if effect.id == core.magic.EFFECT_TYPE.AlmsiviIntervention then return 'almsivi' end
         if effect.id == core.magic.EFFECT_TYPE.DivineIntervention then return 'divine' end

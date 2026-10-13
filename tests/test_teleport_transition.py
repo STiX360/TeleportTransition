@@ -197,6 +197,19 @@ class TeleportTests(unittest.TestCase):
             h.onFrame(0); assert(not shader.active)
         """)
 
+    def test_optional_kyne_custom_effect_and_fallback(self):
+        self.run_lua("""
+            h.onFrame(0); values.colour='Blue'; values.divineColour='Gold'
+            spellId='T_Nor_Mys_KynesIntervention'; spellName='Divine Intervention'
+            effect='divineintervention'; cast(); h.onTeleported(); h.onFrame(0)
+            assert(shader.uniforms.transitionRed==0.2 and shader.uniforms.transitionBlue==1)
+            h.onFrame(2); spellId='custom'; spellName='Translated spell'
+            effect='t_intervention_kyne'; h.onTeleported(); cast(); h.onFrame(0)
+            assert(shader.active and shader.uniforms.transitionRed==0.2)
+            h.onFrame(2); cast(); now=1; h.onFrame(0)
+            assert(not shader.active)
+        """)
+
     def test_failed_cast_door_and_transport_events_never_enable(self):
         self.run_lua("""
             playing=false

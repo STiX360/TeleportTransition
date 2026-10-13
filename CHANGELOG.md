@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.3
+
+- Recognise Daisy's Greater Recall custom effect directly, including translated
+  spell records. Add archive-backed and isolated native destination-menu tests.
+- Verify Daisy's Lua Multimark 2 Greater Recall in-game. Both supported multimark
+  mods remain optional; no third-party scripts or assets are bundled.
+- Recognise optional Tamriel Data Kyne's Intervention by custom effect or record
+  identity, including its Divine Intervention fallback. Keep its dedicated
+  colour control hidden pending normal-casting acceptance.
+- Add an isolated copied-dependency Kyne test profile without changing POTI.
+
 ## 0.2.2
 
 - Start automatic effects on the next frame, avoiding nested delayed-action errors after scripted teleports.

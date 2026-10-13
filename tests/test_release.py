@@ -68,6 +68,9 @@ class ReleaseTests(unittest.TestCase):
     def test_development_package_keeps_build_dependencies(self):
         for name in ('Test-Teleport-Transition.cmd', 'Test-Teleport-Transition-POTI-Shaders.cmd',
                      'Test-Teleport-Transition-MultiMark.cmd',
+                     'Test-Teleport-Transition-Daisy.cmd', 'Test-Teleport-Transition-Kyne.cmd',
+                     'TeleportTransitionDaisyTest.omwscripts', 'TeleportTransitionDaisySmoke.omwscripts',
+                     'TeleportTransitionKyneTest.omwscripts',
                      'TeleportTransitionTest.omwscripts', 'TeleportTransitionSmoke.omwscripts',
                      'TESTING.md', 'requirements-dev.txt'):
             (self.root / name).write_text('fixture')
@@ -75,6 +78,8 @@ class ReleaseTests(unittest.TestCase):
         with zipfile.ZipFile(build(self.root, test=True)) as archive:
             self.assertIn('VERSION', archive.namelist())
             self.assertIn('CHANGELOG.md', archive.namelist())
+            self.assertIn('TeleportTransitionDaisySmoke.omwscripts', archive.namelist())
+            self.assertIn('Test-Teleport-Transition-Kyne.cmd', archive.namelist())
 
     def test_missing_asset_uploaded_and_draft_published(self):
         def draft(args, **kwargs):

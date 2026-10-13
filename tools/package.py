@@ -30,6 +30,9 @@ def build(root=ROOT, test=False):
     if test:
         files.update(('Test-Teleport-Transition.cmd', 'Test-Teleport-Transition-POTI-Shaders.cmd',
                       'Test-Teleport-Transition-MultiMark.cmd',
+                      'Test-Teleport-Transition-Daisy.cmd', 'Test-Teleport-Transition-Kyne.cmd',
+                      'TeleportTransitionDaisyTest.omwscripts', 'TeleportTransitionDaisySmoke.omwscripts',
+                      'TeleportTransitionKyneTest.omwscripts',
                       'TeleportTransitionTest.omwscripts', 'TeleportTransitionSmoke.omwscripts',
                       'TESTING.md', 'VERSION', 'requirements-dev.txt'))
         for directory in ('scripts', 'L10n', 'tests', 'tools', 'reports'):
