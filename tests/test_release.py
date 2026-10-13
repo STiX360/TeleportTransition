@@ -67,6 +67,7 @@ class ReleaseTests(unittest.TestCase):
 
     def test_development_package_keeps_build_dependencies(self):
         for name in ('Test-Teleport-Transition.cmd', 'Test-Teleport-Transition-POTI-Shaders.cmd',
+                     'Test-Teleport-Transition-MultiMark.cmd',
                      'TeleportTransitionTest.omwscripts', 'TeleportTransitionSmoke.omwscripts',
                      'TESTING.md', 'requirements-dev.txt'):
             (self.root / name).write_text('fixture')

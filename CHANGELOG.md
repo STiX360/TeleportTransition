@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.2
+
+- Start automatic effects on the next frame, avoiding nested delayed-action errors after scripted teleports.
+- Keep automatic spell matching alive while a teleport spell menu is open, improving
+  compatibility with Lua multimark mods that choose a destination after casting.
+- Recognise Recall and Intervention variants by spell record name/id when they do
+  not expose the vanilla teleport effects directly.
+- Add separate colour overrides for Recall, Almsivi Intervention, and Divine
+  Intervention, each inheriting Default Colour unless overridden.
+- Rename the shared colour setting to Default Colour; expose only the vanilla
+  teleport spell colour overrides in this update.
+- Verify Pure Lua Multi Mark 2.5 marked-destination Recall in-game; no additional
+  mod is required to use Teleport Transition.
+
 ## 0.2.1
 
 - Set stronger purple defaults: strength 2.4, duration 1.8, distortion 3,

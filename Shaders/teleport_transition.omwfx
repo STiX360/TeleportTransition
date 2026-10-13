@@ -69,7 +69,7 @@ fragment teleportTransition {
 technique {
     description = "Short teleport arrival transition. Controlled through Scripts.";
     author = "Teleport Transition";
-    version = "0.2.1";
+    version = "0.2.2";
     passes = teleportTransition;
     dynamic = true;
 }

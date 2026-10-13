@@ -15,6 +15,7 @@ class TeleportTests(unittest.TestCase):
             now, loads, playing, mode = 0, 0, true, nil
             enabledTeleport, stance, effect = true, 'spell', 'recall'
             values, chain = {}, {{name='POTI'}}
+            spellId, spellName = nil, nil
             shader = {uniforms={}}
             function shader:enable()
                 if not self.active then table.insert(chain,self); self.active=true end
@@ -47,7 +48,7 @@ class TeleportTests(unittest.TestCase):
                     getSelectedEnchantedItem=function() return enchanted end,
                     getSelectedSpell=function()
                         if absent then return nil end
-                        return {type=spellType or 'spell',effects={{id=effect}}}
+                        return {id=spellId,name=spellName,type=spellType or 'spell',effects={{id=effect}}}
                     end},Player={isTeleportingEnabled=function() return enabledTeleport end}}
             end
             package.preload['openmw.animation']=function()
@@ -79,11 +80,12 @@ class TeleportTests(unittest.TestCase):
         self.run_lua("""
             for _,id in ipairs({'recall','almsiviintervention','divineintervention'}) do
                 effect=id; cast(); assert(not shader.active)
-                h.onTeleported(); assert(shader.active and #chain==2)
+                h.onTeleported(); assert(not shader.active); h.onFrame(0)
+                assert(shader.active and #chain==2)
                 h.onFrame(0.9); assert(shader.uniforms.transitionProgress==0.5)
                 assert(shader.uniforms.transitionAspect==3440/1440)
                 h.onFrame(0.9); assert(not shader.active and #chain==1)
-                h.onTeleported(); cast(); assert(shader.active)
+                h.onTeleported(); cast(); h.onFrame(0); assert(shader.active)
                 h.onFrame(2); assert(not shader.active)
             end
             assert(loads==1 and chain[1].name=='POTI')
@@ -99,6 +101,8 @@ class TeleportTests(unittest.TestCase):
             assert(not shader.active)
             effect='recall'; enchanted={}; cast(); h.onTeleported(); assert(not shader.active)
             enchanted=nil; stance='weapon'; cast(); h.onTeleported(); assert(not shader.active)
+            stance='spell'; spellId='greater mark'; spellName='Greater Mark'; effect='summon'
+            cast(); h.onTeleported(); assert(not shader.active)
         """)
 
     def test_missing_destination_blocked_and_stale_events(self):
@@ -145,6 +149,7 @@ class TeleportTests(unittest.TestCase):
         self.run_lua("""
             h.onLoad({enabled=true,strength=0.99,duration=0.8,reducedMotion=false}); h.onFrame(0)
             assert(values.distortion==3 and values.colour=='Purple' and values.tint==0.85)
+            assert(values.recallColour=='Default' and values.almsiviColour=='Default')
             values.distortion=2.4; values.ripples=3; values.colour='Purple'
             values.tint=0.65; values.fringe=0.35; values.duration=0.4
             api.play(); h.onFrame(0.2)
@@ -158,6 +163,38 @@ class TeleportTests(unittest.TestCase):
             api.play()
             assert(shader.uniforms.transitionRipples==5 and shader.uniforms.transitionDistortion==0)
             assert(shader.uniforms.transitionRed==1 and shader.uniforms.transitionTint==1)
+        """)
+
+    def test_multimark_menu_window_and_per_spell_colours(self):
+        self.run_lua("""
+            h.onFrame(0)
+            values.colour='Neutral'; values.recallColour='Green'
+            mode='Teleport menu'; effect='recall'; cast()
+            now=5; h.onFrame(0); assert(not shader.active)
+            mode=nil; h.onTeleported(); h.onFrame(0); assert(shader.active)
+            assert(shader.uniforms.transitionGreen==1 and shader.uniforms.transitionRed==0.25)
+            h.onFrame(2); assert(not shader.active)
+
+            now=6; values.divineColour='Gold'; effect='summon'
+            spellId='da_lmm_greater_recall'; spellName='Greater Recall'
+            cast(); h.onTeleported(); h.onFrame(0); assert(shader.active)
+            assert(shader.uniforms.transitionGreen==1 and shader.uniforms.transitionRed==0.25)
+            h.onFrame(2)
+
+            saved=h.onSave(); assert(saved.recallColour=='Green')
+        """)
+
+    def test_scripted_teleport_defers_shader_and_cleans_pending_requests(self):
+        self.run_lua("""
+            h.onFrame(0); cast()
+            local original=shader.setFloat
+            shader.setFloat=function() error('nested delayed action') end
+            h.onTeleported(); assert(not shader.active)
+            shader.setFloat=original; h.onFrame(0); assert(shader.active)
+            api.stop(); cast(); h.onTeleported(); values.automatic=false
+            h.onFrame(0); assert(not shader.active)
+            values.automatic=true; cast(); h.onTeleported(); h.onLoad(nil)
+            h.onFrame(0); assert(not shader.active)
         """)
 
     def test_failed_cast_door_and_transport_events_never_enable(self):

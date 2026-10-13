@@ -4,6 +4,7 @@ param(
     [switch]$PrepareOnly,
     [switch]$SmokeTest,
     [switch]$PotiShaders,
+    [string]$PureMultiMarkArchive,
     [string]$PotiProfile = 'C:\Modlists\POTI\profiles\Path of the Incarnate - Standard'
 )
 $ErrorActionPreference = 'Stop'
@@ -27,6 +28,7 @@ foreach ($file in @('TeleportTransitionTest.omwscripts', 'TeleportTransitionSmok
 }
 $name = if ($SmokeTest) { 'smoke' } else { 'manual' }
 if ($PotiShaders) { $name = 'poti-shaders-' + $name }
+if ($PureMultiMarkArchive) { $name = 'puremultimark-' + $name }
 $profilePath = Join-Path $projectRoot ".runtime\$name-profile"
 $userDataPath = Join-Path $projectRoot ".runtime\$name-user-data"
 $localDataPath = Join-Path $userDataPath 'data'
@@ -42,6 +44,17 @@ $lines = @(
     'content=TeleportTransitionTest.omwscripts'
 )
 $chain = ''
+if ($PureMultiMarkArchive) {
+    $multiMarkZip = (Resolve-Path -LiteralPath $PureMultiMarkArchive).Path
+    $multiMarkExtract = Join-Path $projectRoot '.runtime\puremultimark-source'
+    Expand-Archive -LiteralPath $multiMarkZip -DestinationPath $multiMarkExtract -Force
+    $multiMarkData = Join-Path $multiMarkExtract 'puremultimark'
+    if (-not (Test-Path -LiteralPath (Join-Path $multiMarkData 'puremultimark.omwscripts'))) {
+        throw 'The archive must contain puremultimark/puremultimark.omwscripts'
+    }
+    $lines += 'data="' + $multiMarkData.Replace('\','/') + '"'
+    $lines += 'content=puremultimark.omwscripts'
+}
 if ($PotiShaders) {
     $potiConfig = Join-Path $PotiProfile 'openmw.cfg'
     $potiSettings = Join-Path $PotiProfile 'settings.cfg'
@@ -100,12 +113,14 @@ chain = $chain
 Write-Host "OpenMW $version test profile: $profilePath"
 Write-Host "Logs: $profilePath\openmw.log"
 Write-Host "Test saves and Lua storage: $userDataPath"
-Write-Host 'Fresh session starts in Seyda Neen. Read TESTING.md for commands and checks.'
+$startCell = 'Seyda Neen'
+Write-Host "Fresh session starts in $startCell. Read TESTING.md for commands and checks."
 if ($PotiShaders) { Write-Host "POTI shader-chain mode (not full modlist): $chain" }
+if ($PureMultiMarkArchive) { Write-Host "Pure Lua Multi Mark enabled from: $multiMarkZip" }
 if ($PrepareOnly) { return }
 $arguments = @('--replace', 'config', '--config', ('"' + $profilePath + '"'),
     '--user-data', ('"' + $userDataPath + '"'), '--skip-menu', '--new-game=0',
-    '--start', '"Seyda Neen"', '--no-grab')
+    '--start', ('"' + $startCell + '"'), '--no-grab')
 if ($SmokeTest) {
     $process = Start-Process -FilePath $enginePath -WorkingDirectory (Split-Path -Parent $enginePath) `
         -WindowStyle Hidden -ArgumentList $arguments -PassThru

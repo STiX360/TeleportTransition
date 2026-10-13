@@ -10,9 +10,11 @@ local I = require('openmw.interfaces')
 
 local group = 'SettingsPlayerTeleportTransition'
 local defaults = {enabled = true, automatic = true, strength = 2.4, duration = 1.8, reducedMotion = false,
-    distortion = 3, ripples = 3, colour = 'Purple', tint = 0.85, fringe = 0.6}
+    distortion = 3, ripples = 3, colour = 'Purple', recallColour = 'Default', almsiviColour = 'Default',
+    divineColour = 'Default', tint = 0.85, fringe = 0.6}
 local colours = {Neutral = {1, 1, 1}, Purple = {0.68, 0.24, 1},
     Blue = {0.2, 0.65, 1}, Green = {0.25, 1, 0.55}, Gold = {1, 0.7, 0.2}}
+local colourItems = {'Default', 'Neutral', 'Purple', 'Blue', 'Green', 'Gold'}
 I.Settings.registerPage {key = 'TeleportTransition', l10n = 'TeleportTransition', name = 'PageName'}
 I.Settings.registerGroup {
     key = group, page = 'TeleportTransition', l10n = 'TeleportTransition', name = 'Treatment',
@@ -26,13 +28,19 @@ I.Settings.registerGroup {
         {key = 'ripples', renderer = 'number', name = 'Ripples', description = 'RipplesRange', default = defaults.ripples, argument = {min = 1, max = 5}},
         {key = 'colour', renderer = 'select', name = 'Colour', default = defaults.colour,
             argument = {l10n = 'TeleportTransition', items = {'Neutral', 'Purple', 'Blue', 'Green', 'Gold'}}},
+        {key = 'recallColour', renderer = 'select', name = 'RecallColour', default = defaults.recallColour,
+            argument = {l10n = 'TeleportTransition', items = colourItems}},
+        {key = 'almsiviColour', renderer = 'select', name = 'AlmsiviColour', default = defaults.almsiviColour,
+            argument = {l10n = 'TeleportTransition', items = colourItems}},
+        {key = 'divineColour', renderer = 'select', name = 'DivineColour', default = defaults.divineColour,
+            argument = {l10n = 'TeleportTransition', items = colourItems}},
         {key = 'tint', renderer = 'number', name = 'Tint', description = 'TintRange', default = defaults.tint, argument = {min = 0, max = 1}},
         {key = 'fringe', renderer = 'number', name = 'Fringe', description = 'FringeRange', default = defaults.fringe, argument = {min = 0, max = 1}},
         {key = 'reducedMotion', renderer = 'checkbox', name = 'ReducedMotion', default = false},
     },
 }
 local settings = storage.playerSection(group)
-local shader, failed, elapsed, duration, castTime, teleportTime
+local shader, failed, elapsed, duration, castTime, teleportTime, castCategory, teleportCategory, activeCategory, pendingPlay
 local restored, pending, held = nil, true, false
 
 local function number(key, low, high)
@@ -55,11 +63,20 @@ end
 local function stop()
     if shader then shader:disable() end
     elapsed = nil
+    pendingPlay = nil
 end
 
-local function applySettings()
+local function colourSetting(category)
+    local key = ({recall = 'recallColour', almsivi = 'almsiviColour',
+        divine = 'divineColour'})[category]
+    local value = key and settings:get(key) or 'Default'
+    if value == 'Default' or not colours[value] then value = settings:get('colour') end
+    return colours[value] or colours.Neutral
+end
+
+local function applySettings(category)
     local size = ui.screenSize()
-    local colour = colours[settings:get('colour')] or colours.Neutral
+    local colour = colourSetting(category)
     shader:setFloat('transitionAspect', size.x / math.max(size.y, 1))
     shader:setFloat('transitionStrength', number('strength', 0, 3))
     shader:setFloat('transitionDistortion', number('distortion', 0, 4))
@@ -72,7 +89,7 @@ local function applySettings()
     shader:setBool('transitionReducedMotion', settings:get('reducedMotion') == true)
 end
 
-local function play()
+local function play(options)
     initialise()
     if settings:get('enabled') == false or failed then return false end
     if not shader then
@@ -85,24 +102,44 @@ local function play()
         end
         shader = result
     end
+    if type(options) == 'table' then
+        activeCategory = options.category
+    elseif type(options) == 'string' then
+        activeCategory = options
+    else
+        activeCategory = nil
+    end
     elapsed, duration = 0, number('duration', 0.2, 2)
-    applySettings()
+    applySettings(activeCategory)
     shader:setFloat('transitionProgress', 0)
     shader:enable()
     return true
 end
 
-local function teleportSpellSelected()
+local function spellText(spell)
+    return string.lower(tostring((spell and (spell.id or spell.name)) or '') .. ' '
+        .. tostring((spell and spell.name) or ''))
+end
+
+local function classifySpell(spell)
+    if not spell or spell.type ~= core.magic.SPELL_TYPE.Spell then return nil end
     if types.Actor.getStance(self) ~= types.Actor.STANCE.Spell then return false end
-    if types.Actor.getSelectedEnchantedItem(self) then return false end
-    local spell = types.Actor.getSelectedSpell(self)
-    if not spell or spell.type ~= core.magic.SPELL_TYPE.Spell then return false end
+    local text = spellText(spell)
     for _, effect in ipairs(spell.effects or {}) do
-        if effect.id == core.magic.EFFECT_TYPE.Recall
-            or effect.id == core.magic.EFFECT_TYPE.AlmsiviIntervention
-            or effect.id == core.magic.EFFECT_TYPE.DivineIntervention then return true end
+        if effect.id == core.magic.EFFECT_TYPE.Recall then return 'recall' end
+        if effect.id == core.magic.EFFECT_TYPE.AlmsiviIntervention then return 'almsivi' end
+        if effect.id == core.magic.EFFECT_TYPE.DivineIntervention then return 'divine' end
     end
-    return false
+    if text:find('mark', 1, true) and not text:find('recall', 1, true) then return nil end
+    if text:find('almsivi', 1, true) and text:find('intervention', 1, true) then return 'almsivi' end
+    if text:find('divine', 1, true) and text:find('intervention', 1, true) then return 'divine' end
+    if text:find('recall', 1, true) then return 'recall' end
+    return nil
+end
+
+local function selectedTeleportCategory()
+    if types.Actor.getSelectedEnchantedItem(self) then return nil end
+    return classifySpell(types.Actor.getSelectedSpell(self))
 end
 
 local function casting()
@@ -113,8 +150,10 @@ local function matchTeleport()
     -- The skill and teleport callbacks can arrive in either order within a frame.
     if settings:get('automatic') ~= false and castTime and teleportTime
         and math.abs(castTime - teleportTime) <= 0.25 then
-        castTime, teleportTime = nil, nil
-        play()
+        local category = teleportCategory or castCategory
+        castTime, teleportTime, castCategory, teleportCategory = nil, nil, nil, nil
+        -- Scripted teleport callbacks run inside an engine delayed action.
+        pendingPlay = {category = category}
     end
 end
 
@@ -122,9 +161,12 @@ I.SkillProgression.addSkillUsedHandler(function(skill, options)
     initialise()
     if skill ~= 'mysticism' or not options
         or options.useType ~= I.SkillProgression.SKILL_USE_TYPES.Spellcast_Success
-        or settings:get('enabled') == false or settings:get('automatic') == false or not teleportSpellSelected()
+        or settings:get('enabled') == false or settings:get('automatic') == false
         or not types.Player.isTeleportingEnabled(self) then return end
+    local category = selectedTeleportCategory()
+    if not category then return end
     castTime = core.getSimulationTime()
+    castCategory = category
     matchTeleport()
 end)
 
@@ -136,29 +178,42 @@ return {
         onFrame = function(dt)
             initialise()
             if settings:get('automatic') == false or settings:get('enabled') == false then
-                castTime, teleportTime = nil, nil
+                castTime, teleportTime, castCategory, teleportCategory = nil, nil, nil, nil
+                pendingPlay = nil
+            end
+            if pendingPlay then
+                local request = pendingPlay
+                pendingPlay = nil
+                play(request)
             end
             local now = core.getSimulationTime()
-            if castTime and now - castTime > 0.25 then castTime = nil end
-            if teleportTime and now - teleportTime > 0.25 then teleportTime = nil end
+            if I.UI.getMode() ~= nil then
+                if castTime then castTime = now end
+                if teleportTime then teleportTime = now end
+            else
+                if castTime and now - castTime > 0.25 then castTime, castCategory = nil, nil end
+                if teleportTime and now - teleportTime > 0.25 then teleportTime, teleportCategory = nil, nil end
+            end
             if elapsed == nil then return end
             if settings:get('enabled') == false then stop(); return end
             elapsed = elapsed + math.max(dt, 0)
             if elapsed >= duration then stop(); return end
-            applySettings()
+            applySettings(activeCategory)
             shader:setFloat('transitionProgress', elapsed / duration)
         end,
         onTeleported = function()
             initialise()
             if settings:get('enabled') == false or settings:get('automatic') == false then return end
-            if not castTime and not (casting() and teleportSpellSelected()) then return end
+            local category = selectedTeleportCategory()
+            if not castTime and not (casting() and category) then return end
             teleportTime = core.getSimulationTime()
+            teleportCategory = category
             matchTeleport()
         end,
         onLoad = function(data)
             stop()
             restored, pending, failed, held = data, true, false, false
-            castTime, teleportTime = nil, nil
+            castTime, teleportTime, castCategory, teleportCategory, activeCategory = nil, nil, nil, nil, nil
         end,
         onSave = function()
             initialise()
@@ -167,6 +222,9 @@ return {
                 strength = number('strength', 0, 3), duration = number('duration', 0.2, 2),
                 distortion = number('distortion', 0, 4), ripples = number('ripples', 1, 5),
                 colour = colours[settings:get('colour')] and settings:get('colour') or 'Neutral',
+                recallColour = colours[settings:get('recallColour')] and settings:get('recallColour') or 'Default',
+                almsiviColour = colours[settings:get('almsiviColour')] and settings:get('almsiviColour') or 'Default',
+                divineColour = colours[settings:get('divineColour')] and settings:get('divineColour') or 'Default',
                 tint = number('tint', 0, 1), fringe = number('fringe', 0, 1),
                 reducedMotion = settings:get('reducedMotion') == true}
         end,

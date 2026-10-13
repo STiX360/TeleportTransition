@@ -69,7 +69,7 @@ speed independently; Purple with a nonzero Colour intensity adds magical colour.
 All new settings also appear on the production Scripts page. `baseline` restores
 the original look without changing Enabled.
 
-Version 0.2.1 defaults match the user-selected slow purple effect: strength 2.4,
+Version 0.2.2 defaults match the slow purple effect: strength 2.4,
 duration 1.8, distortion 3, bands 3, Purple, colour intensity 0.85, fringe 0.6.
 Start fresh or use Reset to adopt them. Both Enabled and Automatic spell effects
 default to Yes. Test integration-only mode by turning Automatic spell effects to
@@ -125,6 +125,61 @@ preview. Test your regular resolution and reduced motion. This is an arrival eff
 it does not retain or crossfade the departure scene.
 
 ## Verification Limits
+
+### Pure Lua Multi Mark
+
+Double-click `Test-Teleport-Transition-MultiMark.cmd` to test the downloaded 2.5
+archive with the production controller and the vanilla spell kit. This uses
+separate `.runtime/puremultimark-manual-profile` and
+`.runtime/puremultimark-manual-user-data` folders. It starts a fresh session;
+no changes are made to the normal OpenMW profile or playthrough saves.
+The launcher expects the supplied ZIP in Downloads. Override the archive with
+`tools/start-test.ps1 -PureMultiMarkArchive 'C:\Path\puremultimark.zip'`.
+
+1. Cast Mark near your starting point; name it Start if prompted. No pulse.
+2. Walk to a clearly different spot, cast Mark again, and name it Second.
+3. Cast Recall, wait ten seconds in the destination menu, then select Start.
+   Expect arrival at Start and exactly one transition.
+4. Repeat Recall, selecting Second. Expect arrival and one transition.
+5. Cast Recall and choose Latest. Expect arrival and one transition.
+6. Cast Recall and cancel the destination menu. Expect no travel or transition.
+7. Cast Divine Intervention and then Recall to Start. Both arrivals should pulse.
+8. Choose a different Recall colour in Options > Scripts > Teleport Transition,
+   then Recall again. Expect the chosen colour.
+
+Report the step number, chosen destination, whether travel occurred, and whether
+the transition appeared. Keep the log at
+`.runtime/puremultimark-manual-profile/openmw.log` for diagnosing failures.
+
+The optional archive-backed regression checks execute the downloaded mod's
+original Recall animation handler, destination selection, cancellation, and
+global destination loader against OpenMW API doubles. Supply the archive locally;
+third-party code is not copied into this repository or packaged with the mod.
+
+```powershell
+$env:PURE_MULTIMARK_ARCHIVE = 'C:\Path\puremultimark.zip'
+python -B -m unittest discover -s tests -p 'test_pure_multimark.py' -v
+```
+
+Checks cover two marks with a long menu wait, both success/teleport callback
+orders, Latest/native Recall, failed casting, and cancellation followed by
+unrelated travel. They do not verify OpenMW's actual callback scheduling or UI.
+In-game acceptance remains pending: create at least two marks, choose each
+destination and Latest, cancel once, and check one pulse per successful arrival
+with none for cancellation or failure.
+
+The first manual test reproduced missing Recall effects. Its OpenMW log showed
+a nested delayed-action error when the controller updated shader uniforms from
+`onTeleported`. Automatic playback is now deferred to `onFrame`. The native smoke
+test exercises a successful Recall notification plus a global scripted teleport;
+Marked-destination Recall was retested in-game after the fix and the transition
+was confirmed working. Latest, cancellation, and negative cases retain separate
+automated coverage; repeat the manual sequence for release acceptance.
+
+Source inspection shows that Multi Mark reports successful Mysticism use at
+spell release, after destination selection, and requests the teleport through
+a global event. A menu delay alone does not establish the reported failure's
+cause. The logged failure was the nested delayed action.
 
 Readiness checks (no game launch):
 

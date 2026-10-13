@@ -1,4 +1,4 @@
-# Teleport Transition 0.2.1
+# Teleport Transition 0.2.2
 
 An asset-free procedural arrival effect for Recall, Almsivi Intervention, and
 Divine Intervention. A short contraction and expanding ripple settle back to
@@ -40,8 +40,9 @@ Manual installation: add this directory as a data path in openmw.cfg and add
 `content=TeleportTransition.omwscripts`.
 
 Options > Scripts > Teleport Transition provides Enabled (default on), strength,
-duration, distortion, ripple bands, magic colour, colour intensity, chromatic
-fringe, and Reduced motion. Ctrl+Shift+F11 previews the effect during gameplay.
+duration, distortion, ripple bands, magic colour, per-spell colour overrides,
+colour intensity, chromatic fringe, and Reduced motion. Ctrl+Shift+F11 previews
+the effect during gameplay.
 Reduced motion removes displacement and chromatic splitting; colour and a gentle
 peripheral fade remain. Numeric ranges are shown beneath each setting.
 The dynamic shader is locked in the F2 HUD; use Scripts settings instead.
@@ -57,7 +58,9 @@ Strength now ranges from 0 to 3. It changes displacement amplitude and the fade,
 not ring radius or speed. Distortion independently multiplies geometric warping;
 ripple bands adds wave detail. Duration controls travel speed: lower is faster.
 Colour intensity is independent of distortion. Choose Purple, Blue, Green, Gold,
-or Neutral. Chromatic fringe separates red/blue samples along the wavefront.
+or Neutral. Recall, Almsivi Intervention, and Divine Intervention can override
+Default Colour. Previews and uncategorised effects use Default Colour. Chromatic fringe separates
+red/blue samples along the wavefront.
 
 Default purple setup:
 
@@ -67,7 +70,8 @@ Default purple setup:
 | Distortion amount | 3 |
 | Ripple bands | 3 |
 | Duration | 1.8 seconds |
-| Magic colour | Purple |
+| Default Colour | Purple |
+| Spell-specific colours | Default Colour |
 | Colour intensity | 0.85 |
 | Chromatic fringe | 0.6 |
 
@@ -79,10 +83,14 @@ as well as refraction and chromatic splitting. There is no strobing or white fla
 ## Behaviour and limitations
 
 The controller pairs a successful Mysticism cast with an actual teleport event
-within 0.25 simulation seconds. Doors, paid travel, Mark, failed casts, and
-blocked/no-destination casts should not trigger it. Custom spells using the same
-three effects are supported. Scrolls and enchanted items are deliberately outside
-this first release. Vanilla spell records and travel mechanics are not modified.
+within 0.25 simulation seconds. If a teleport spell opens a menu, as multimark
+mods often do, that matching window is held while the menu is open. Doors, paid
+travel, Mark, failed casts, and blocked/no-destination casts should not trigger it.
+Custom spells using the same three effects are supported, as are spell records
+named like Greater Recall. Pure Lua Multi Mark 2.5 destination selection has been
+tested in-game. Multi Mark is optional; no additional mod is required. Scrolls and enchanted items are
+deliberately outside this first release. Vanilla spell records and travel mechanics
+are not modified.
 
 This is an arrival transition, not a before-and-after crossfade: the engine
 teleports instantly, and we do not intercept it or retain the departure image.

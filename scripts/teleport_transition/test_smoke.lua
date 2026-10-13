@@ -65,18 +65,38 @@ local function update(dt)
         assert(not active() and I.TeleportTransitionTest.getPulseCount() == pulseCount,
             'Scripted home travel incorrectly triggered a pulse')
         assert(chainNames() == baseline, 'Existing chain changed after scripted travel')
-        print('TT_SMOKE_PASS: defaults, external calls with automatic off, purple, reduced motion, chain preservation')
-        stage = 6
+        local settings = storage.playerSection('SettingsPlayerTeleportTransition')
+        settings:set('automatic', true)
+        settings:set('reducedMotion', false)
+        types.Actor.setSelectedSpell(self, core.magic.spells.records['recall'])
+        types.Actor.setStance(self, types.Actor.STANCE.Spell)
+        stage, time = 6, 0
+    elseif stage == 6 and time >= 0.1 then
+        I.SkillProgression.skillUsed('mysticism', {
+            skillGain = 3, useType = I.SkillProgression.SKILL_USE_TYPES.Spellcast_Success,
+        })
+        -- Reproduce Multi Mark's success notification followed by a global teleport.
+        core.sendGlobalEvent('TeleportTransitionTestAction', {player = self.object, command = 'home'})
+        stage, time = 7, 0
+    elseif stage == 7 and time >= 0.15 then
+        assert(active(), 'Scripted Recall arrival did not activate the shader')
+        assert(I.TeleportTransitionTest.getPulseCount() == pulseCount + 1,
+            'Scripted Recall arrival must produce exactly one pulse')
+        stage = 8
+    elseif stage == 8 and time >= 1.2 then
+        assert(not active() and chainNames() == baseline, 'Scripted Recall did not clean up')
+        print('TT_SMOKE_PASS: defaults, previews, chain preservation, scripted Recall delayed-action regression')
+        stage = 9
         core.quit()
     end
 end
 
 return {engineHandlers = {onFrame = function(dt)
-    if stage == 6 then return end
+    if stage == 9 then return end
     local ok, message = pcall(update, dt)
     if not ok then
         print('TT_SMOKE_FAIL: ' .. tostring(message))
-        stage = 6
+        stage = 9
         core.quit()
     end
 end}}
